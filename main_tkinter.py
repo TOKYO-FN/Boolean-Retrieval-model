@@ -7,8 +7,6 @@ import os
 import re
 import nltk
 
-# Ensure NLTK resources are downloaded
-nltk.download("stopwords")
 
 class BooleanRetrievalModel:
     def __init__(self):
