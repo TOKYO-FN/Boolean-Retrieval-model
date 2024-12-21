@@ -53,7 +53,8 @@ This project implements a Boolean Retrieval Model with a graphical user interfac
 
 ## Screenshots
 
-![[Pasted image 20241221195257.png]]
+![image](https://github.com/user-attachments/assets/27cde778-b6c2-49ed-83ff-7040d22835fc)
+
 
 ## Project Structure
 
