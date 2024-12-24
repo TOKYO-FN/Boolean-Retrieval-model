@@ -103,9 +103,7 @@ brm.build_index(documents)
 
 # Perform queries
 query1 = "image AND recognition"
-query2 = "NOT mayar and ayman"
-query3 = "mirror OR right OR left"
+query2 = "mirror OR right OR left"
 
 print(f"Query: '{query1}' -> Documents: {brm.boolean_query(query1, documents)}")
 print(f"Query: '{query2}' -> Documents: {brm.boolean_query(query2, documents)}")
-print(f"Query: '{query3}' -> Documents: {brm.boolean_query(query3, documents)}")
