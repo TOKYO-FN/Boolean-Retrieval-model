@@ -7,7 +7,6 @@ import os
 import re
 import nltk
 
-
 class BooleanRetrievalModel:
     def __init__(self):
         self.inverted_index = defaultdict(set)
@@ -27,34 +26,59 @@ class BooleanRetrievalModel:
                 self.inverted_index[term].add(doc_id)
 
     def boolean_query(self, query, documents):
-        tokens = query.lower().split()
-        result_stack = []
-        operators = {"and", "or", "not"}
-        current_op = None
+      """
+			Perform a Boolean query on the inverted index.
 
-        for token in tokens:
-            if token in operators:
-                current_op = token
-            else:
-                preprocessed_token = self.preprocess_text(token)
-                token_docs = self.inverted_index.get(preprocessed_token[0], set()) if preprocessed_token else set()
+			:param query: A string Boolean query (e.g., "term1 AND term2 OR term3").
+			:return: A set of document IDs matching the query.
+			"""
 
-                if current_op == "not":
-                    universe = set(documents.keys())
-                    token_docs = universe - token_docs
-                    current_op = None
+      tokens = query.lower().split()
+      result_stack = []
+      operators = {"and", "or", "not"}
+      current_op = None
 
-                if result_stack:
-                    prev_docs = result_stack.pop()
-                    if current_op == "and":
-                        token_docs = prev_docs & token_docs
-                    elif current_op == "or":
-                        token_docs = prev_docs | token_docs
+      for i, token in enumerate(tokens):
+        if token in operators:
+          current_op = token
+        else:
+				# Preprocess the token to match the document preprocessing
+          preprocessed_token = self.preprocess_text(token)
+          token_docs = self.inverted_index.get(preprocessed_token[0], set()) if preprocessed_token else set()
 
-                result_stack.append(token_docs)
-                current_op = None
+					# Handle "AND NOT" explicitly
+          if i > 1 and tokens[i - 1] == "not" and tokens[i - 2] == "and":
+              if result_stack:
+                  prev_docs = result_stack.pop()
+                  token_docs = prev_docs - token_docs
+              current_op = None  # Reset operator
 
-        return result_stack.pop() if result_stack else set()
+					# Handle "OR NOT" explicitly
+          elif i > 1 and tokens[i - 1] == "not" and tokens[i - 2] == "or":
+              if result_stack:
+                  prev_docs = result_stack.pop()
+                  token_docs = prev_docs | (set(documents.keys()) - token_docs)
+              current_op = None  # Reset operator
+
+					# Apply NOT operator standalone
+          elif current_op == "not":
+              universe = set(documents.keys())
+              token_docs = universe - token_docs
+              current_op = None  # Reset operator
+
+					# Process the result stack for "AND" and "OR"
+          if result_stack:
+              prev_docs = result_stack.pop()
+              if current_op == "and":
+                  token_docs = prev_docs & token_docs
+              elif current_op == "or":
+                  token_docs = prev_docs | token_docs
+
+          result_stack.append(token_docs)
+          current_op = None  # Reset operator
+
+      return result_stack.pop() if result_stack else set()
+
 
 def load_documents_from_txt_files():
     documents = {}
@@ -87,7 +111,7 @@ class BooleanRetrievalApp:
         self.search_button = tk.Button(root, text="Search", command=self.search_query)
         self.search_button.pack(pady=5)
 
-        self.result_text = tk.Text(root, height=10, width=60)
+        self.result_text = tk.Text(root, height=20, width=80, wrap=tk.WORD)
         self.result_text.pack(pady=10)
 
     def load_documents(self):
@@ -108,9 +132,10 @@ class BooleanRetrievalApp:
         self.result_text.delete(1.0, tk.END)
 
         if results:
-            self.result_text.insert(tk.END, "Matching Documents:\n")
+            self.result_text.insert(tk.END, "Matching Documents:\n\n")
             for doc in results:
-                self.result_text.insert(tk.END, f"- {doc}\n")
+                self.result_text.insert(tk.END, f"{doc}:\n")
+                self.result_text.insert(tk.END, f"{self.documents[doc]}\n\n{'-'*40}\n\n")
         else:
             self.result_text.insert(tk.END, "No matching documents found.")
 
