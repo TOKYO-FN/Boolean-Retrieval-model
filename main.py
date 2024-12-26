@@ -38,43 +38,58 @@ class BooleanRetrievalModel:
                 self.inverted_index[term].add(doc_id)
 
     def boolean_query(self, query, documents):
-        """
-        Perform a Boolean query on the inverted index.
-        
-        :param query: A string Boolean query (e.g., "term1 AND term2 OR term3").
-        :return: A set of document IDs matching the query.
-        """
-        tokens = query.lower().split()
-        result_stack = []
-        operators = {"and", "or", "not"}
-        current_op = None
+      """
+			Perform a Boolean query on the inverted index.
 
-        for token in tokens:
-            if token in operators:
-                current_op = token
-            else:
-                # Preprocess the token to match the document preprocessing
-                preprocessed_token = self.preprocess_text(token)
-                token_docs = self.inverted_index.get(preprocessed_token[0], set()) if preprocessed_token else set()
+			:param query: A string Boolean query (e.g., "term1 AND term2 OR term3").
+			:return: A set of document IDs matching the query.
+			"""
 
-                # Apply NOT operator
-                if current_op == "not":
-                    universe = set(documents.keys())
-                    token_docs = universe - token_docs
-                    current_op = None  # Reset operator
+      tokens = query.lower().split()
+      result_stack = []
+      operators = {"and", "or", "not"}
+      current_op = None
 
-                # Process the result stack
-                if result_stack:
-                    prev_docs = result_stack.pop()
-                    if current_op == "and":
-                        token_docs = prev_docs & token_docs
-                    elif current_op == "or":
-                        token_docs = prev_docs | token_docs
+      for i, token in enumerate(tokens):
+        if token in operators:
+          current_op = token
+        else:
+				# Preprocess the token to match the document preprocessing
+          preprocessed_token = self.preprocess_text(token)
+          token_docs = self.inverted_index.get(preprocessed_token[0], set()) if preprocessed_token else set()
 
-                result_stack.append(token_docs)
-                current_op = None  # Reset operator
+					# Handle "AND NOT" explicitly
+          if i > 1 and tokens[i - 1] == "not" and tokens[i - 2] == "and":
+              if result_stack:
+                  prev_docs = result_stack.pop()
+                  token_docs = prev_docs - token_docs
+              current_op = None  # Reset operator
 
-        return result_stack.pop() if result_stack else set()
+					# Handle "OR NOT" explicitly
+          elif i > 1 and tokens[i - 1] == "not" and tokens[i - 2] == "or":
+              if result_stack:
+                  prev_docs = result_stack.pop()
+                  token_docs = prev_docs | (set(documents.keys()) - token_docs)
+              current_op = None  # Reset operator
+
+					# Apply NOT operator standalone
+          elif current_op == "not":
+              universe = set(documents.keys())
+              token_docs = universe - token_docs
+              current_op = None  # Reset operator
+
+					# Process the result stack for "AND" and "OR"
+          if result_stack:
+              prev_docs = result_stack.pop()
+              if current_op == "and":
+                  token_docs = prev_docs & token_docs
+              elif current_op == "or":
+                  token_docs = prev_docs | token_docs
+
+          result_stack.append(token_docs)
+          current_op = None  # Reset operator
+
+      return result_stack.pop() if result_stack else set()
 
 
 # Function to load .txt files
@@ -127,14 +142,14 @@ brm.build_index(documents)
 ground_truth = {
     "image OR recognition": {"deep_learning.txt", "machine_learning.txt"},
     "hello OR left": {"try.txt", "el 4bab el 7lw.txt", "information_retrieval.txt"},
-    "not neural and machine": {"machine_learning.txt"},
+    "machine and not neural": {"machine_learning.txt"},
 }
 
 # Perform queries and calculate precision and recall
 queries = [
 "image OR recognition",
 "hello OR left",
-"not neural and machine",
+"machine and not neural",
 ]
 
 for query in queries:
