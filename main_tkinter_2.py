@@ -11,7 +11,6 @@ class BooleanRetrievalModel:
     def __init__(self):
         self.inverted_index = defaultdict(set)
         self.stemmer = PorterStemmer()
-        nltk.download("stopwords")
         self.stop_words = set(stopwords.words("english"))
 
     def preprocess_text(self, text):

@@ -5,7 +5,6 @@ from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 import nltk
 
-
 class BooleanRetrievalModel:
     def __init__(self):
         self.inverted_index = defaultdict(set)
@@ -94,16 +93,56 @@ def load_documents_from_txt_files():
     return documents
 
 
+def calculate_precision_recall(retrieved_docs, relevant_docs):
+    """
+    Calculate precision and recall based on retrieved and relevant documents.
+    
+    :param retrieved_docs: A set of document IDs retrieved by the query.
+    :param relevant_docs: A set of document IDs that are relevant (ground truth).
+    :return: A tuple of (precision, recall).
+    """
+    if not retrieved_docs:
+        precision = 0
+    else:
+        precision = len(retrieved_docs & relevant_docs) / len(retrieved_docs)
+
+    if not relevant_docs:
+        recall = 0
+    else:
+        recall = len(retrieved_docs & relevant_docs) / len(relevant_docs)
+
+    return precision, recall
+
+
 # Load documents
 documents = load_documents_from_txt_files()
 
 # Initialize and build the index
 brm = BooleanRetrievalModel()
+
+# brm.preprocess_text()
 brm.build_index(documents)
 
-# Perform queries
-query1 = "image AND recognition"
-query2 = "mirror OR right OR left"
+# Example ground truth for each query
+ground_truth = {
+    "image OR recognition": {"deep_learning.txt", "machine_learning.txt"},
+    "hello OR left": {"try.txt", "el 4bab el 7lw.txt", "information_retrieval.txt"},
+    "not neural and machine": {"machine_learning.txt"},
+}
 
-print(f"Query: '{query1}' -> Documents: {brm.boolean_query(query1, documents)}")
-print(f"Query: '{query2}' -> Documents: {brm.boolean_query(query2, documents)}")
+# Perform queries and calculate precision and recall
+queries = [
+"image OR recognition",
+"hello OR left",
+"not neural and machine",
+]
+
+for query in queries:
+    retrieved_docs = brm.boolean_query(query, documents)
+    relevant_docs = ground_truth[query]
+    precision, recall = calculate_precision_recall(retrieved_docs, relevant_docs)
+
+    print(f"Query: '{query}'")
+    print(f"Retrieved: {retrieved_docs}")
+    print(f"Relevant: {relevant_docs}")
+    print(f"Precision: {precision:.2f}, Recall: {recall:.2f}\n")
